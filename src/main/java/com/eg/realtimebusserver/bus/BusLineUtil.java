@@ -1,10 +1,11 @@
-package com.eg.realtimebusserver.util;
+package com.eg.realtimebusserver.bus;
 
 import com.alibaba.fastjson.JSON;
 import com.eg.realtimebusserver.RealTimeBusServerApplication;
 import com.eg.realtimebusserver.bean.stationinfo.amap.AmapStationInfo;
 import com.eg.realtimebusserver.bean.stationinfo.amap.Buslines;
 import com.eg.realtimebusserver.bean.stationinfo.amap.Busstops;
+import com.eg.realtimebusserver.util.LocationUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
@@ -72,8 +73,8 @@ public class BusLineUtil {
         AmapStationInfo amapStationInfo = busLineMap.get(busName);
         List<Buslines> buslines = amapStationInfo.getBuslines();
         //解析出经纬度坐标
-        double clientLat = LocationUtils.getLat(position);
-        double clientLng = LocationUtils.getLng(position);
+        double myLat = LocationUtils.getLat(position);
+        double myLng = LocationUtils.getLng(position);
         //判断方向
         Buslines busLine;
         if (direction.equals("a")) {
@@ -85,13 +86,13 @@ public class BusLineUtil {
         List<Busstops> busstops = busLine.getBusstops();
         int minIndex = 0;
         //初始化最新距离
-        double minDistance = LocationUtils.getDistance(clientLat, clientLng,
+        double minDistance = LocationUtils.getDistance(myLat, myLng,
                 LocationUtils.getLat(busstops.get(0).getLocation()),
                 LocationUtils.getLng(busstops.get(0).getLocation()));
         //遍历所有站点
         for (int i = 0; i < busstops.size(); i++) {
             Busstops busstop = busstops.get(i);
-            double distance = LocationUtils.getDistance(clientLat, clientLng,
+            double distance = LocationUtils.getDistance(myLat, myLng,
                     LocationUtils.getLat(busstop.getLocation()), LocationUtils.getLng(busstop.getLocation()));
             if (distance < minDistance) {
                 minIndex = i;
@@ -100,12 +101,6 @@ public class BusLineUtil {
         }
         //返回序号
         return Integer.valueOf(busstops.get(minIndex).getSequence());
-    }
-
-    public static void main(String[] args) {
-        loadAllStations();
-        int a = getStationSequenceByPosition("50", "b", "125.156268,46.582009");
-        System.out.println(a);
     }
 
 }

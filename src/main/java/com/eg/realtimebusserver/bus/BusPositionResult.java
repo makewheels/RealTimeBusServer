@@ -1,4 +1,4 @@
-package com.eg.realtimebusserver.bean;
+package com.eg.realtimebusserver.bus;
 
 public class BusPositionResult {
     private String id;
