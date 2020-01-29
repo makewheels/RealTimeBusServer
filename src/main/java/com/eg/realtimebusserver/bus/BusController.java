@@ -1,14 +1,21 @@
 package com.eg.realtimebusserver.bus;
 
 import com.alibaba.fastjson.JSON;
+import com.eg.realtimebusserver.bean.timetable.ClientTimeTable;
+import com.eg.realtimebusserver.bean.timetable.my.DepartTime;
+import com.eg.realtimebusserver.bean.timetable.my.TimeTable;
 import com.eg.realtimebusserver.util.Constants;
 import com.eg.realtimebusserver.util.HttpUtil;
 import com.eg.realtimebusserver.util.LocationUtils;
+import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.io.File;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -100,5 +107,69 @@ public class BusController {
         distanceResponse.setHasBus(true);
         distanceResponse.setDistance(minDistance);
         return JSON.toJSONString(distanceResponse);
+    }
+
+    @RequestMapping("getCurrentBusStation")
+    @ResponseBody
+    public String getCurrentBusStation() {
+        return null;
+    }
+
+    @RequestMapping("getTimeTable")
+    @ResponseBody
+    public String getTimeTable(@RequestParam String busName,
+                               @RequestParam String direction) {
+        // 读发车时间
+        String filename;
+        if (direction.equals("a")) {
+            filename = "f" + busName + ".json";
+        } else {
+            filename = busName + ".json";
+        }
+        ClientTimeTable clientTimeTable = new ClientTimeTable();
+        TimeTable timeTable;
+        List<LocalTime> localTimeList = new ArrayList<>();
+        List<DepartTime> departTimeList;
+        try {
+            // 解析时刻表
+            String json = FileUtils.readFileToString(new File(
+                    BusController.class.getResource("/bus/timetable/my/").getPath(), filename), "utf-8");
+            timeTable = JSON.parseObject(json, TimeTable.class);
+            // 拿到发车时间list结合
+            departTimeList = timeTable.getDepartTimeList();
+        } catch (Exception e) {
+            // 如果找不到文件
+            e.printStackTrace();
+            clientTimeTable.setMsg("error");
+            return JSON.toJSONString(clientTimeTable);
+        }
+        for (DepartTime departTime : departTimeList) {
+            localTimeList.add(departTime.getLocalTime());
+        }
+        // 目的：从现在的时间开始，往后的发车时间，优先显示。所以要调整顺序
+        List<String> stringList = new ArrayList<>();
+        int index = 0;
+        for (int i = 0; i < localTimeList.size(); i++) {
+            // 找到第一个比现在晚的
+            if (localTimeList.get(i).isAfter(LocalTime.now(ZoneId.of("UTC+8")))) {
+                index = i;
+                break;
+            }
+        }
+        // 现在到最后
+        for (int i = index; i < localTimeList.size(); i++) {
+            stringList.add(localTimeList.get(i).toString());
+        }
+        // 今天和明天发车时间的分隔行
+        stringList.add("----------");
+        // 开头到现在
+        for (int i = 0; i < index - 1; i++) {
+            stringList.add(localTimeList.get(i).toString());
+        }
+        // 回写给客户端
+        clientTimeTable.setMsg("ok");
+        clientTimeTable.setTopic(timeTable.getOriginalTopic());
+        clientTimeTable.setTimeList(stringList);
+        return JSON.toJSONString(clientTimeTable);
     }
 }

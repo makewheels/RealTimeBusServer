@@ -1,4 +1,4 @@
-package com.eg.realtimebusserver.prepare;
+package com.eg.realtimebusserver.prepare.timetable;
 
 import com.eg.realtimebusserver.util.Constants;
 import com.eg.realtimebusserver.util.HttpUtil;
